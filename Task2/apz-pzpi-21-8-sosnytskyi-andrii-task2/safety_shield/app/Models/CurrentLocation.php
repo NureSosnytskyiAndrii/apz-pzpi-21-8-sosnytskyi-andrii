@@ -9,7 +9,8 @@ class CurrentLocation extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['location_id', 'latitude', 'longitude', 'timestamp', 'employee_id'];
+    protected $fillable = ['location_id', 'latitude', 'longitude', 'notes', 'timestamp', 'employee_id'];
+
     protected $guarded = false;
 
     public function employee()

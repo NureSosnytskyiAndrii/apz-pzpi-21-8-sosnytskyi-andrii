@@ -3,14 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\CurrentConditions;
+use App\Models\Employee;
 use App\Models\HealthReadings;
 use App\Models\SensorData;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class SensorDataController extends Controller
 {
+    /**
+     * Insert sensor data into the database.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function insertSensorData(Request $request)
     {
         $lastHealthReadingId = HealthReadings::latest('health_reading_id')->value('health_reading_id');
@@ -43,6 +51,15 @@ class SensorDataController extends Controller
         return response()->json(['message' => 'Sensor data inserted successfully', 'sensor_data' => $sensorData], 201);
     }
 
+    /**
+     * Update health reading based on sensor data.
+     *
+     * @param  int  $healthReadingId
+     * @param  string  $sensorType
+     * @param  string  $value
+     * @param  int|null  $locationId
+     * @return \Illuminate\Http\Response
+     */
     private function updateHealthReading($healthReadingId, $sensorType, $value, $locationId=null)
     {
         $healthReading = HealthReadings::find($healthReadingId);
@@ -89,7 +106,7 @@ class SensorDataController extends Controller
             $diastolicPressure = $bloodPressure[1];
 
             if ($systolicPressure > 140 || $diastolicPressure > 90) {
-               $currentCondition = CurrentConditions::where('employee_id', $healthReading->employee_id)
+                $currentCondition = CurrentConditions::where('employee_id', $healthReading->employee_id)
                     ->where('location_id', $locationId)
                     ->get();
                 foreach ($currentCondition as $condition)
@@ -122,6 +139,29 @@ class SensorDataController extends Controller
         }
 
         return response()->json(['message' => 'Health reading updated successfully', 'health_reading' => $healthReading]);
+    }
+
+    /**
+     * Retrieve sensor data for the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getSensorData(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        $employee = Employee::where('user_id', $user->id)->first();
+        $employeeId = $employee->employee_id;
+
+        $healthReadingIds = HealthReadings::where('employee_id', $employeeId)->pluck('health_reading_id');
+
+        $sensorData = SensorData::whereIn('health_reading_id', $healthReadingIds)->get();
+
+        return response()->json(['sensor_data' => $sensorData]);
     }
 
 

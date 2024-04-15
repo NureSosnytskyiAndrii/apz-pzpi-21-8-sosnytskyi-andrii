@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\Validator;
 
 class HealthDataController extends Controller
 {
+    /**
+     * Insert health data into the database.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function insertHealthData(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -63,6 +69,12 @@ class HealthDataController extends Controller
         return response()->json(['message' => 'Health reading inserted successfully', 'health_data' => $healthReading], 201);
     }
 
+    /**
+     * Retrieve health data for the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function getHealthData(Request $request)
     {
         $user = Auth::user();
@@ -77,4 +89,32 @@ class HealthDataController extends Controller
 
         return response()->json(['health_data' => $healthData]);
     }
+
+    /**
+     * Delete health data by ID.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function deleteHealthData($id)
+    {
+        $healthData = HealthReadings::find($id);
+
+        if (!$healthData) {
+            return response()->json(['error' => 'Health data not found'], 404);
+        }
+
+        try {
+            $healthData->sensorData()->delete();
+
+            $healthData->delete();
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to delete health data'], 500);
+        }
+
+        return response()->json(['message' => 'Health data deleted successfully'], 200);
+    }
+
+
 }

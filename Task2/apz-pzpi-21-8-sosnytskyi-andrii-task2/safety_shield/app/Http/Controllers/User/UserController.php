@@ -8,7 +8,9 @@ use App\Models\CurrentLocation;
 use App\Models\Employee;
 use App\Models\EmployeeLocation;
 use App\Models\Organization;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+
 
 class UserController extends Controller
 {
@@ -85,14 +87,33 @@ class UserController extends Controller
 
         if ($employee) {
             $conditions = CurrentConditions::where('organization_id', $employee->organization_id)
-                ->where('employee_id', $employee->id)
+                ->where('employee_id', $employee->employee_id)
                 ->get();
             if ($conditions->isNotEmpty()) {
+
                 $conditionInfo['conditions'] = $conditions;
             }
         }
 
         return response()->json(['conditionInfo' => $conditionInfo]);
 
+    }
+
+    public function deleteAccount($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $authenticatedUser = Auth::user();
+        if (!$authenticatedUser || $authenticatedUser->id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $user->delete();
+
+        return response()->json(['message' => 'Account deleted successfully'], 200);
     }
 }
